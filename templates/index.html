@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>科学遐思精灵</title>
+<style>
+    /* ===== 全局 ===== */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+        font-family: -apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        background: #f0f2f5;
+        color: #333;
+        min-height: 100vh;
+    }
+
+    /* ===== 顶部导航 ===== */
+    .header {
+        background: linear-gradient(135deg, #1a1a2e, #16213e);
+        color: #fff;
+        padding: 16px 30px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    }
+    .header h1 { font-size: 22px; font-weight: 600; }
+    .header h1 span { opacity: 0.7; font-size: 14px; font-weight: 400; margin-left: 10px; }
+
+    /* ===== 主容器（双栏） ===== */
+    .container {
+        display: flex;
+        gap: 20px;
+        padding: 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+        min-height: calc(100vh - 70px);
+    }
+
+    /* ===== 左侧面板 ===== */
+    .panel-left {
+        flex: 1;
+        background: #fff;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        display: flex;
+        flex-direction: column;
+    }
+    .panel-left h2 {
+        font-size: 16px;
+        color: #1a1a2e;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* 输入框 */
+    .input-area textarea {
+        width: 100%;
+        height: 120px;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 15px;
+        resize: vertical;
+        transition: border-color 0.2s;
+        font-family: inherit;
+        line-height: 1.6;
+    }
+    .input-area textarea:focus {
+        outline: none;
+        border-color: #4a6cf7;
+    }
+    .input-area .hint {
+        font-size: 12px;
+        color: #999;
+        margin-top: 4px;
+    }
+
+    /* 按钮群 */
+    .btn-group {
+        display: flex;
+        gap: 8px;
+        margin: 10px 0;
+        flex-wrap: wrap;
+    }
+    .btn {
+        padding: 8px 18px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 500;
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .btn:active { transform: translateY(0); }
+    .btn-primary { background: #4a6cf7; color: #fff; }
+    .btn-primary:hover { background: #3b5de7; }
+    .btn-secondary { background: #e8e8e8; color: #555; }
+    .btn-secondary:hover { background: #ddd; }
+    .btn-danger { background: #ff4757; color: #fff; }
+    .btn-danger:hover { background: #e83949; }
+    .btn-success {
+        background: linear-gradient(135deg, #2ed573, #26de81);
+        color: #fff;
+        padding: 12px 30px;
+        font-size: 16px;
+        font-weight: 600;
+    }
+    .btn-success:hover { background: linear-gradient(135deg, #26de81, #20bf6b); }
+    .btn-success:disabled { background: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* 暂存区 */
+    .stash-area {
+        flex: 1;
+        margin-top: 10px;
+        display: flex;
+        flex-direction: column;
+        min-height: 100px;
+    }
+    .stash-area label {
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 4px;
+    }
+    .stash-box {
+        flex: 1;
+        background: #f8f9fa;
+        border: 1px solid #e8e8e8;
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 14px;
+        line-height: 1.8;
+        white-space: pre-wrap;
+        overflow-y: auto;
+        min-height: 80px;
+        max-height: 300px;
+        color: #333;
+    }
+    .stash-box.empty {
+        color: #bbb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* 状态栏 */
+    .status-bar {
+        margin-top: 10px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        display: none;
+    }
+    .status-bar.info { display: block; background: #e8f4fd; color: #1a73e8; }
+    .status-bar.success { display: block; background: #e6f9ed; color: #1a8d4a; }
+    .status-bar.error { display: block; background: #fde8e8; color: #d63031; }
+    .status-bar.generating {
+        display: block; background: #fff8e1; color: #e6a800;
+        animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+
+    /* ===== 右侧面板 ===== */
+    .panel-right {
+        width: 400px;
+        min-width: 320px;
+        background: #fff;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        display: flex;
+        flex-direction: column;
+    }
+    .panel-right .header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+    .panel-right .header-row h2 { font-size: 16px; color: #1a1a2e; }
+    .panel-right .header-row .count {
+        font-size: 12px;
+        color: #999;
+        background: #f0f2f5;
+        padding: 2px 10px;
+        border-radius: 10px;
+    }
+
+    /* 报告列表 */
+    .report-list {
+        flex: 1;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .report-list .empty {
+        text-align: center;
+        color: #bbb;
+        padding: 40px 0;
+        font-size: 14px;
+    }
+    .report-item {
+        padding: 10px 12px;
+        border: 1px solid #eee;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .report-item:hover {
+        background: #f8f9fa;
+        border-color: #4a6cf7;
+    }
+    .report-item .name {
+        font-size: 13px;
+        font-weight: 500;
+        color: #333;
+    }
+    .report-item .meta {
+        font-size: 11px;
+        color: #999;
+        margin-top: 2px;
+        display: flex;
+        gap: 12px;
+    }
+
+    /* ===== 模态框 ===== */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-card {
+        background: #fff;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 700px;
+        max-height: 85vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid #eee;
+    }
+    .modal-header h3 { font-size: 16px; }
+    .modal-close {
+        width: 32px; height: 32px;
+        border: none; background: #f0f2f5;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #666;
+        transition: 0.15s;
+    }
+    .modal-close:hover { background: #e0e0e0; }
+    .modal-body {
+        padding: 20px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        font-size: 14px;
+        line-height: 1.8;
+        font-family: 'Courier New', monospace;
+    }
+
+    /* ===== 响应式 ===== */
+    @media (max-width: 900px) {
+        .container { flex-direction: column; }
+        .panel-right { width: 100%; min-width: 0; }
+    }
+</style>
+</head>
+<body>
+
+<!-- ===== 顶部 ===== -->
+<div class="header">
+    <h1>🔬 科学遐思精灵 <span>Inspiration Storage Genie</span></h1>
+    <div style="font-size:13px; opacity:0.7">v1.0</div>
+</div>
+
+<!-- ===== 主容器 ===== -->
+<div class="container">
+
+    <!-- 左侧：输入区 -->
+    <div class="panel-left">
+        <h2>✍️ 记录你的科学遐想</h2>
+
+        <div class="input-area">
+            <textarea id="ideaInput" placeholder="输入你的灵感碎片...&#10;例如：我突然想到，如果量子纠缠可以用来传递信息..."></textarea>
+            <div class="hint">💡 Ctrl+Enter 快速暂存 | 多次暂存累积后统一发送给 AI</div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="stashIdea()">📌 暂存此句</button>
+            <button class="btn btn-secondary" onclick="clearInput()">清空输入</button>
+        </div>
+
+        <div class="stash-area">
+            <label>📋 当前暂存区（已累积 <span id="stashCount">0</span> 条）</label>
+            <div class="stash-box empty" id="stashBox">点击「暂存此句」开始累积...</div>
+        </div>
+
+        <div class="btn-group" style="margin-top:12px">
+            <button class="btn btn-success" id="sendBtn" onclick="sendToAI()">🚀 发送给 AI 生成报告</button>
+        </div>
+
+        <div class="status-bar" id="statusBar"></div>
+    </div>
+
+    <!-- 右侧：报告库 -->
+    <div class="panel-right">
+        <div class="header-row">
+            <h2>📚 报告库</h2>
+            <span class="count" id="reportCount">0 份</span>
+            <button class="btn btn-secondary" onclick="refreshReports()" style="padding:4px 12px;font-size:12px">🔄 刷新</button>
+        </div>
+        <div class="report-list" id="reportList">
+            <div class="empty">暂无报告，发送 AI 后自动生成</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ===== 模态框 ===== -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 id="modalTitle">报告详情</h3>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body" id="modalBody">加载中...</div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+//  全局状态
+// ============================================================
+let stashTexts = [];           // 暂存列表
+let currentTaskId = null;      // 当前任务ID
+let pollTimer = null;          // 轮询定时器
+
+// ============================================================
+//  左侧：暂存操作
+// ============================================================
+
+function stashIdea() {
+    const input = document.getElementById('ideaInput');
+    const text = input.value.trim();
+    if (!text) {
+        showStatus('请输入内容后再暂存', 'error');
+        return;
+    }
+
+    stashTexts.push(text);
+    input.value = '';
+    input.focus();
+
+    // 更新暂存区
+    const box = document.getElementById('stashBox');
+    box.classList.remove('empty');
+    box.textContent = stashTexts.map((t, i) => `[${i+1}] ${t}`).join('\n');
+    box.scrollTop = box.scrollHeight;
+
+    document.getElementById('stashCount').textContent = stashTexts.length;
+    showStatus(`✅ 已暂存第 ${stashTexts.length} 条`, 'success');
+}
+
+function clearInput() {
+    document.getElementById('ideaInput').value = '';
+    document.getElementById('ideaInput').focus();
+}
+
+function clearAll() {
+    if (stashTexts.length === 0) return;
+    if (!confirm('确定清空暂存区吗？')) return;
+    stashTexts = [];
+    const box = document.getElementById('stashBox');
+    box.textContent = '点击「暂存此句」开始累积...';
+    box.classList.add('empty');
+    document.getElementById('stashCount').textContent = '0';
+    showStatus('暂存区已清空', 'info');
+}
+
+// ============================================================
+//  发送给 AI
+// ============================================================
+
+async function sendToAI() {
+    if (stashTexts.length === 0) {
+        showStatus('暂存区为空，请先输入并暂存内容', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('sendBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ 生成中...';
+
+    const fullText = stashTexts.join('\n');
+
+    try {
+        const resp = await fetch('/api/send_to_ai', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({text: fullText})
+        });
+        const data = await resp.json();
+
+        if (data.status === 'error') {
+            showStatus('❌ ' + data.message, 'error');
+            btn.disabled = false;
+            btn.textContent = '🚀 发送给 AI 生成报告';
+            return;
+        }
+
+        // 清空暂存区（释放 UI）
+        stashTexts = [];
+        const box = document.getElementById('stashBox');
+        box.textContent = '点击「暂存此句」开始累积...';
+        box.classList.add('empty');
+        document.getElementById('stashCount').textContent = '0';
+
+        currentTaskId = data.task_id;
+        showStatus('⏳ 报告生成中，请稍后...', 'generating');
+
+        // 开始轮询任务状态
+        startPolling(data.task_id);
+
+    } catch (err) {
+        showStatus('❌ 网络错误: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.textContent = '🚀 发送给 AI 生成报告';
+    }
+}
+
+// ============================================================
+//  轮询任务状态
+// ============================================================
+
+function startPolling(taskId) {
+    if (pollTimer) clearInterval(pollTimer);
+
+    pollTimer = setInterval(async () => {
+        try {
+            const resp = await fetch(`/api/status/${taskId}`);
+            const data = await resp.json();
+
+            if (data.status === 'completed') {
+                clearInterval(pollTimer);
+                pollTimer = null;
+                const btn = document.getElementById('sendBtn');
+                btn.disabled = false;
+                btn.textContent = '🚀 发送给 AI 生成报告';
+
+                const filename = data.data ? data.data.filename : '未知';
+                showStatus(`✅ 报告已生成：${filename}，请刷新报告列表查看`, 'success');
+
+                // 自动刷新报告列表
+                setTimeout(refreshReports, 500);
+            } else if (data.status === 'failed') {
+                clearInterval(pollTimer);
+                pollTimer = null;
+                const btn = document.getElementById('sendBtn');
+                btn.disabled = false;
+                btn.textContent = '🚀 发送给 AI 生成报告';
+                showStatus('❌ 生成失败: ' + (data.data ? data.data.error : '未知错误'), 'error');
+            }
+            // 'generating' 状态继续等待
+        } catch (err) {
+            // 网络错误，继续尝试
+        }
+    }, 1000);  // 每秒查询一次
+}
+
+// ============================================================
+//  右侧：报告列表
+// ============================================================
+
+async function refreshReports() {
+    try {
+        const resp = await fetch('/api/reports');
+        const data = await resp.json();
+
+        if (data.status !== 'ok') {
+            console.error('获取报告列表失败:', data.message);
+            return;
+        }
+
+        const list = document.getElementById('reportList');
+        const count = document.getElementById('reportCount');
+
+        if (data.reports.length === 0) {
+            list.innerHTML = '<div class="empty">暂无报告</div>';
+            count.textContent = '0 份';
+            return;
+        }
+
+        count.textContent = data.reports.length + ' 份';
+        list.innerHTML = data.reports.map(r => `
+            <div class="report-item" onclick="viewReport('${r.name}')">
+                <div class="name">📄 ${r.name}</div>
+                <div class="meta">
+                    <span>🕐 ${r.time}</span>
+                    <span>📦 ${formatSize(r.size)}</span>
+                </div>
+            </div>
+        `).join('');
+    } catch (err) {
+        console.error('刷新失败:', err);
+    }
+}
+
+function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    return (bytes / 1024).toFixed(1) + ' KB';
+}
+
+// ============================================================
+//  查看报告（模态框）
+// ============================================================
+
+async function viewReport(filename) {
+    document.getElementById('modalTitle').textContent = '📄 ' + filename;
+    document.getElementById('modalBody').textContent = '加载中...';
+    document.getElementById('modalOverlay').classList.add('active');
+
+    try {
+        const resp = await fetch(`/api/reports/${encodeURIComponent(filename)}`);
+        const data = await resp.json();
+
+        if (data.status === 'ok') {
+            document.getElementById('modalBody').textContent = data.content;
+        } else {
+            document.getElementById('modalBody').textContent = '加载失败: ' + data.message;
+        }
+    } catch (err) {
+        document.getElementById('modalBody').textContent = '网络错误: ' + err.message;
+    }
+}
+
+function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('active');
+}
+
+function closeModalOutside(event) {
+    if (event.target === document.getElementById('modalOverlay')) {
+        closeModal();
+    }
+}
+
+// ============================================================
+//  状态提示
+// ============================================================
+
+function showStatus(msg, type) {
+    const bar = document.getElementById('statusBar');
+    bar.textContent = msg;
+    bar.className = 'status-bar ' + type;
+}
+
+// ============================================================
+//  键盘快捷键
+// ============================================================
+
+document.addEventListener('keydown', function(e) {
+    // Ctrl+Enter 暂存
+    if (e.ctrlKey && e.key === 'Enter') {
+        e.preventDefault();
+        stashIdea();
+    }
+    // ESC 关闭模态框
+    if (e.key === 'Escape') {
+        closeModal();
+    }
+});
+
+// ============================================================
+//  自动刷新（页面加载后每30秒刷新一次报告列表）
+// ============================================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    refreshReports();
+    // 每30秒自动刷新
+    setInterval(refreshReports, 30000);
+});
+</script>
+
+</body>
+</html>
